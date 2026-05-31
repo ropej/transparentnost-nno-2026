@@ -1,0 +1,743 @@
+---
+title: "Transparentnost neziskového sektoru: kontinuální zveřejňování účetních závěrek"
+date: "2026-05-17"
+author: "Romana Pejcalová, Jakub Pejcal"
+lang: cs
+format:
+  html:
+    theme: journal
+    toc: true
+    toc-depth: 3
+    toc-location: right
+    embed-resources: true
+    number-sections: true
+    code-fold: true
+    code-summary: "Zobrazit kód"
+editor: visual
+---
+
+```{css, echo=FALSE}
+h1, h2, h3, h4, h5, h6 {
+  color: #007B3DFF;
+}
+
+h3 {
+  font-size: 1.2rem;
+}
+
+table caption {
+  text-align: left !important;
+}
+
+table th {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+table.tab-popis-dat {
+  width: 97% !important;
+}
+```
+
+```{r setup}
+#| echo: FALSE
+#| warning: FALSE
+#| message: FALSE
+
+rm(list = ls())
+setwd("C:/Users/pejcalovar/OneDrive - MSMT/MUNI - statistika/_statistiky pro Kubu/sokoli, FAČR, hasiči, ČK")
+
+library(dplyr)
+library(purrr)
+library(readxl)
+library(stringi)
+library(openxlsx)
+library(ggplot2)
+library(kableExtra)
+library(scales)
+library(gridExtra)
+library(grid)
+library(plotly)
+
+theme_set(theme_minimal())
+barvy <- c('#D51317', '#F39200', '#EFD500', '#95C11F', '#007B3DFF', '#31B7BC', '#0094CD')
+
+loc <- Sys.setlocale(locale = "Czech")
+options(OutDec = ",")
+```
+
+```{r load-data}
+#| echo: FALSE
+#| warning: FALSE
+#| message: FALSE
+
+data <- readRDS("data-2026.rds")
+
+data <- data |>
+  mutate(ucetnictvi = 
+           factor(ifelse(is.na(ucetnictvi), "neuvedeno", as.character(ucetnictvi)),
+                  levels = c("jednoduché", "zjednodušené", "plné", "neuvedeno")
+                  ),
+         f_majetkova_struktura = 
+           factor(ifelse(is.na(f_majetkova_struktura), "neuvedeno", as.character(f_majetkova_struktura)),
+                  levels = c("do 90 %", "nad 90 %", "neuvedeno")
+                  )
+         )
+```
+
+# Transparentnost NNO a její význam
+
+Neziskové organizace (NNO) jsou soukromoprávní osoby, které nepodléhají stejné veřejné kontrole jako orgány veřejné správy. Přesto disponují řadou specifik, které veřejný zájem o jejich hospodaření legitimizují: čerpají prostředky z veřejných zdrojů, využívají daňové benefity, oslovují veřejnost s žádostmi o podporu a často poukazují na problematické jevy ve společnosti.
+
+**Transparentnost** - jako plnění předem daných povinností vůči stakeholderům včetně legislativních požadavků - je proto základním nástrojem pro získání důvěryhodnosti. Přesto většina organizací neplní ani minimální zákonné povinnosti. Důvody jsou opakovaně identifikovány: složitost a roztříštěnost právní úpravy, rezignace státu na vymáhání, neznalost a nízká profesionalita na straně NNO.
+
+## Zákonná povinnost zveřejňovat účetní závěrky
+
+Od účinnosti nového občanského zákoníku (2014) jsou spolky, pobočné spolky a další formy NNO povinny ukládat účetní závěrky do sbírky listin veřejného rejstříku. Konkrétně musí být zveřejněna rozvaha a výkaz zisku a ztráty (případně výkaz příjmů a výdajů) za každý účetní rok, v němž organizace existovala.
+
+Dosavadní výzkum na Centru pro výzkum neziskového sektoru (CVNS) ukázal, že povinnost je plněna velmi nerovnoměrně: u nadací (povinnost od 1997) neplní průběžně svou povinnost průměrně přes 51 % subjektů, a to i z těch, které mají webové stránky. Podobné výsledky byly zjištěny u struktury Fotbalové asociace ČR, Českého červeného kříže i Sdružení hasičů Čech, Moravy a Slezska.
+
+## Popis dat a zkoumaného vzorku
+
+Výzkumný vzorek tvoří **80 poboček ze čtyř zastřešujících organizací**: Českého červeného kříže (ČČK), Fotbalové asociace ČR (FAČR), Sdružení hasičů Čech, Moravy a Slezska a České obce sokolské (Sokoli). Organizace byly vybrány záměrně tak, aby přesně polovina (40) kontinuálně splňovala zákonnou povinnost zveřejňovat účetní závěrky a polovina (40) tuto povinnost neplnila.
+
+Klíčová vysvětlovaná proměnná `zv_kontinualni` je tedy dichotomická: **`ano`** (40 jednotek) / **`ne`** (40 jednotek).
+
+```{r popis-dat}
+#| echo: FALSE
+#| warning: FALSE
+#| message: FALSE
+
+data |>
+  group_by(organizace) |>
+  summarise(
+    `Celkem poboček` = n(),
+    `Zveřejňuje (ano)` = sum(zv_kontinualni == "ano"),
+    `Nezveřejňuje (ne)` = sum(zv_kontinualni == "ne"),
+    `Medián obyvatel (tis.)` = round(median(obyvatele, na.rm = TRUE) / 1000, 1),
+    `Medián majetku (tis. Kč)` = format(round(median(majetek, na.rm = TRUE), 0),
+       big.mark = " ", scientific = FALSE)
+  ) |>
+  kbl(booktabs = TRUE, 
+      caption = "Základní charakteristiky vzorku dle organizace",
+      align = c("l", "r", "r", "r", "r", "r")) |>
+  kable_styling(full_width = FALSE,
+                htmltable_class = "tab-popis-dat")
+```
+
+Z každé organizace je zastoupeno 20 poboček. Vznik organizací sahá od 70. let 20. století; 60 % vzorku vzniklo po roce 1993 (tj. po vzniku samostatné ČR). Data pokrývají charakteristiky základní (velikost sídla, účetnictví, web, kontakty) i ekonomické (průměrný majetek, výnosy, náklady za dostupná účetní období, poměrové ukazatele).
+
+------------------------------------------------------------------------
+
+# Průběžné analýzy
+
+## Kategorie spojené se zveřejňováním
+
+Kontingenční tabulky porovnávají zastoupení jednotlivých kategorií vysvětlujících proměnných ve skupině zveřejňujících (`ano`) a nezveřejňujících (`ne`) organizací. Níže jsou vybrány proměnné s nejzajímavějším rozdělením.
+
+```{r kont-tabulky-kod}
+#| echo: TRUE
+#| eval: FALSE
+
+kvalitativni <- data |>
+  select(where(is.factor)) |>
+  select(-matches("^(zv_kontinualni|zv_kontinualni_minule|zv_vse|zv_vse_minule|f_mesto|zamestnanost)$")) |>
+  names()
+
+kontingencni_tabulky <- map(set_names(kvalitativni), \(var) {
+  tab <- table(data$zv_kontinualni, data[[var]])
+  list(
+    abs      = addmargins(tab),
+    podm_rad = prop.table(tab, margin = 1),
+    rel      = addmargins(prop.table(tab))
+  )
+})
+```
+
+### Web
+
+::::: columns
+::: {.column width="50%"}
+```{r tab-web}
+#| echo: FALSE
+tab_web <- table(data$zv_kontinualni, data$web)
+addmargins(tab_web) |>
+  kbl(booktabs = TRUE,
+      caption = "Tabulka absolutních četností: zv_kontinualni × web") |>
+  kable_styling(full_width = FALSE)
+```
+:::
+
+::: {.column width="50%" style="height:300px;"}
+```{r plot-web}
+#| echo: FALSE
+p_web <- data |>
+  filter(!is.na(web)) |>
+  count(zv_kontinualni, web) |>
+  group_by(zv_kontinualni) |>
+  mutate(pct = n / sum(n)) |>
+  ggplot(aes(x = zv_kontinualni, y = pct, fill = web)) +
+  geom_col(position = "fill", width = 0.6) +
+  scale_y_continuous(labels = percent_format()) +
+  scale_fill_manual(values = c("#007B3DFF", "#D51317"), name = "Web") +
+  labs(x = "Kontinuálně zveřejňuje", y = "Podíl organizací") +
+  theme(plot.title = element_text(face = "bold"))
+
+ggplotly(p_web, tooltip =  c("x", "y", "fill"), 
+         height = 270, width = 350) |>
+  layout(margin = list(l = 100)) |>
+  config(displayModeBar = FALSE)
+```
+:::
+:::::
+
+Podmíněné řádkové relativní četnosti ukazují, že 87,5 % kontinuálně zveřejňujících organizací **má webové stránky**, zatímco u nezveřejňujících je to jen 70,0 %. Závislost na přítomnosti webu je statisticky prokázána (viz @sec-chisq-testy).
+
+### Typ účetnictví
+
+::::: columns
+::: {.column width="50%"}
+```{r tab-ucetnictvi}
+#| echo: FALSE
+tab_uct <- table(data$zv_kontinualni, data$ucetnictvi)
+addmargins(tab_uct) |>
+  kbl(booktabs = TRUE,
+      caption = "Tabulka absolutních četností: zv_kontinualni × typ účetnictví") |>
+  kable_styling(full_width = FALSE)
+```
+:::
+
+::: {.column width="40%" style="height:300px;"}
+```{r plot-ucetnictvi}
+#| echo: FALSE
+p_uct <- data |>
+  filter(!is.na(ucetnictvi)) |>
+  count(zv_kontinualni, ucetnictvi) |>
+  group_by(zv_kontinualni) |>
+  mutate(pct = n / sum(n)) |>
+  ggplot(aes(x = zv_kontinualni, y = pct, fill = ucetnictvi)) +
+  geom_col(position = "fill", width = 0.6) +
+  scale_y_continuous(labels = percent_format()) +
+  scale_fill_manual(values = c("#D51317", "#F39200", "#007B3DFF", "gray"),
+                    name = "Typ  \núčetnictví") +
+  labs(title = "",
+       x = "Kontinuálně zveřejňuje", y = "Podíl organizací") +
+  theme(plot.title = element_text(face = "bold"))
+
+ggplotly(p_uct, tooltip =  c("x", "y", "fill"), 
+         height = 270, width = 390) |>
+  layout(margin = list(l = 80)) |>
+  config(displayModeBar = FALSE)
+```
+:::
+:::::
+
+Zveřejňující organizace téměř bez výjimky **vedou podvojné účetnictví a informaci o jeho typu vždy uvádějí**. U nezveřejňujících organizací naopak 35 % typ účetnictví vůbec neuvede a 12,5 % vede jednoduché účetnictví - celkově tedy působí méně profesionálně a organizovaně.
+
+### Kontakty
+
+::::: columns
+::: {.column width="50%"}
+```{r tab-kontakty}
+#| echo: FALSE
+tab_kont <- table(data$zv_kontinualni, data$kontakty_obecne)
+addmargins(tab_kont) |>
+  kbl(booktabs = TRUE,
+      caption = "Tabulka absolutních četností: zv_kontinualni × alespoň jeden kontakt") |>
+  kable_styling(full_width = FALSE)
+```
+:::
+
+::: {.column width="50%" style="height:300px;"}
+```{r plot-kontakty}
+#| echo: FALSE
+p_kontakt <- data |>
+  filter(!is.na(kontakty_obecne)) |>
+  count(zv_kontinualni, kontakty_obecne) |>
+  group_by(zv_kontinualni) |>
+  mutate(pct = n / sum(n)) |>
+  ggplot(aes(x = zv_kontinualni, y = pct, fill = kontakty_obecne)) +
+  geom_col(position = "fill", width = 0.6) +
+  scale_y_continuous(labels = percent_format()) +
+  scale_fill_manual(values = c("#007B3DFF", "#D51317"),
+                    name = "Dostupné \nkontakty") +
+  labs(title = "",
+       x = "Kontinuálně zveřejňuje", y = "Podíl organizací") +
+  theme(plot.title = element_text(face = "bold"))
+
+ggplotly(p_kontakt, tooltip =  c("x", "y", "fill"), 
+         height = 270, width = 350) |>
+  layout(margin = list(l = 100)) |>
+  config(displayModeBar = FALSE)
+```
+:::
+:::::
+
+90,0 % zveřejňujících organizací **uvádí alespoň jeden kontakt** (jméno, e-mail nebo telefon), oproti 72,5 % nezveřejňujících. Rozdíl je statisticky významný.
+
+### Vznik organizace a velikost sídla
+
+Na 5% hladině významnosti nebyla prokázána statisticky významná závislost kontinuálního zveřejňování na proměnných `f_vznik` (před/po 1993) a `f_mesto_dummy` (do/nad 50 tis. obyvatel). Deskriptivně však platí, že 67,5 % nezveřejňujících organizací sídlí v obcích do 50 tis. obyvatel a 57,5 % zveřejňujících organizací vzniklo po roce 1993.
+
+::::: columns
+::: {.column width="40%" style="height:300px;"}
+```{r plot-vznik}
+#| echo: FALSE
+p_vznik <- data |>
+  filter(!is.na(f_vznik)) |>
+  count(zv_kontinualni, f_vznik) |>
+  group_by(zv_kontinualni) |>
+  mutate(pct = n / sum(n)) |>
+  ggplot(aes(x = zv_kontinualni, y = pct, fill = f_vznik)) +
+  geom_col(position = "fill", width = 0.6) +
+  scale_y_continuous(labels = percent_format()) +
+  scale_fill_manual(values = c("#007B3DFF", "#F39200"),
+                    name = "Vznik") +
+  labs(title = "",
+       x = "Kontinuálně zveřejňuje", y = "Podíl organizací") +
+  theme(plot.title = element_text(face = "bold"))
+
+ggplotly(p_vznik, tooltip =  c("x", "y", "fill"), 
+         height = 270, width = 330) |>
+  config(displayModeBar = FALSE)
+```
+:::
+
+::: {.column width="60%" style="height:300px;"}
+```{r plot-mesto}
+#| echo: FALSE
+p_mesto <- data |>
+  filter(!is.na(f_mesto)) |>
+  mutate(f_mesto = 
+           forcats::fct_recode(f_mesto, "Světové velkoměsto" = "Světové velkoměsto nad 1 mil.")) |>
+  count(zv_kontinualni, f_mesto) |>
+  group_by(zv_kontinualni) |>
+  mutate(pct = n / sum(n)) |>
+  ggplot(aes(x = zv_kontinualni, y = pct, fill = f_mesto)) +
+  geom_col(position = "fill", width = 0.6) +
+  scale_y_continuous(labels = percent_format()) +
+  scale_fill_manual(values = barvy[c(5, 1, 2, 3, 7)],
+                    name = "Velikost sídla") +
+  labs(title = "",
+       x = "Kontinuálně zveřejňuje", y = "Podíl organizací") +
+  theme(plot.title = element_text(face = "bold"))
+
+ggplotly(p_mesto, tooltip =  c("x", "y", "fill"), 
+         height = 270, width = 390) |>
+  # layout(margin = list(l = 100)) |>
+  config(displayModeBar = FALSE, responsive = FALSE)
+```
+:::
+:::::
+
+### Kde se skupiny skutečně liší {#sec-chisq-testy}
+
+Pro ověření vztahu mezi kontinuálním zveřejňováním účetních závěrek a vybranými kategorickými proměnnými byly použity **χ² testy dobré shody**, případně **Fisherův exaktní test**. Síla zjištěné závislosti byla hodnocena pomocí Cramérova indexu V.
+
+```{r chisq-kod}
+#| echo: TRUE
+#| eval: FALSE
+
+cramer_v_label <- function(v) {
+  sila <- case_when(
+    v < 0.1 ~ "zanedbatelná závislost",
+    v < 0.3 ~ "slabá závislost",
+    v < 0.5 ~ "střední závislost",
+    .default = "silná závislost"
+  )
+  paste(round(v, 3), sila)
+}
+
+set.seed(123)
+chisq_vysledky <- map(set_names(kvalitativni), \(var) {
+  foo <- chisq.test(data$zv_kontinualni, data[[var]],
+                    simulate.p.value = TRUE, B = 10000)
+  podminka <- if (
+    (sum(foo$expected >= 5) + sum(foo$expected < 5 & foo$expected >= 2)) /
+    length(foo$observed) == 1
+  ) "splneno" else "nesplneno"
+  K <- foo$statistic
+  n <- sum(foo$observed)
+  m <- min(dim(foo$observed))
+  cramer_v <- sqrt(K / (n * (m - 1)))
+  list(test = foo, podminka = podminka, cramer_v = cramer_v_label(cramer_v))
+})
+```
+
+```{r chisq-vysledky}
+#| echo: FALSE
+
+chisq_res <- data.frame(
+  `Vysvětlující proměnná` = c("Web (ano/ne)",
+                               "Typ účetnictví",
+                               "Kontakty obecně (ano/ne)",
+                               "Majetková struktura (do/nad 90 %)",
+                               "Zadluženost (do/nad 5 %)",
+                               "HHI kategorie (do/nad 0,6)",
+                               "Vznik (před/po 1993)",
+                               "Velikost sídla (do/nad 50 tis.)",
+                               "Podřízené úrovně (ano/ne)",
+                               "Vedlejší činnost (ano/ne)",
+                               "Stanovy zveřejněny (ano/ne)"),
+  `p-hodnota` = c("0,099 *", "0,000 ***", "0,083 *",
+                  "0,000 ***", "0,723", "1,000",
+                  "0,819", "1,000", "1,000",
+                  "1,000", "0,263"),
+  `Závislost` = c("Ano", "Ano", "Ano",
+                  "Ano", "Ne", "Ne",
+                  "Ne", "Ne", "Ne",
+                  "Ne", "Ne"),
+  `Cramerův index` = c("0,21 slabá závislost", "0,53 silná závislost", "0,22 slabá závislost", "0,67 silná závislost", "", "", "", "", "", "", ""),
+  check.names = FALSE
+)
+
+chisq_res |>
+  kbl(booktabs = TRUE,
+      caption = "Výsledky &chi;&sup2; testů dobré shody na zv_kontinualni (&alpha; = 0,05)",
+      align = c("l", "r", "c", "c")) |>
+  kable_styling(full_width = FALSE) |>
+  column_spec(3, bold = TRUE,
+              color = ifelse((chisq_res$Závislost == "Ne"), "gray40", "#007B3DFF"))
+```
+
+Na 5% hladině významnosti byla prokázána závislost kontinuálního zveřejňování na přítomnosti **webu**, **typu účetnictví** a **dostupnosti kontaktů**. U zbývajících kategorických proměnných závislost prokázána nebyla - v části případů kvůli nedostatečné variabilitě nebo chybějícím datům (zaměstnanci, transparentní účet).
+
+::::: columns
+::: {.column width="50%" style="height:330px;"}
+```{r plot-web-2}
+#| echo: FALSE
+ggplotly(p_web, tooltip =  c("x", "y", "fill"), 
+         height = 300, width = 340) |>
+  config(displayModeBar = FALSE)
+```
+:::
+
+::: {.column width="50%" style="height:330px;"}
+```{r plot-ucetnictvi-2}
+#| echo: FALSE
+
+ggplotly(p_uct, tooltip =  c("x", "y", "fill"), 
+         height = 300, width = 380) |>
+  config(displayModeBar = FALSE)
+```
+:::
+:::::
+
+U **majetkové struktury** byla pozorována výrazná závislost, která však pravděpodobně odráží především to, zda jsou účetní údaje organizace vůbec dohledatelné. Organizace kontinuálně nezveřejňující účetní závěrku totiž často nemají údaje o majetkové struktuře dostupné (`„neuvedeno“`).
+
+::::: columns
+::: {.column width="50%" style="height:330px;"}
+```{r plot-majetek-2}
+#| echo: FALSE
+p_majet_column <- data |>
+  filter(!is.na(f_majetkova_struktura)) |>
+  count(zv_kontinualni, f_majetkova_struktura) |>
+  group_by(zv_kontinualni) |>
+  mutate(pct = n / sum(n)) |>
+  ggplot(aes(x = zv_kontinualni, y = pct, fill = f_majetkova_struktura)) +
+  geom_col(position = "fill", width = 0.6) +
+  scale_y_continuous(labels = percent_format()) +
+  scale_fill_manual(values = c("#0094CD", "#F39200", "gray"),
+                    name = "Majetková \nstruktura") +
+  labs(title = "",
+       x = "Kontinuálně zveřejňuje", y = "Podíl organizací") +
+  theme(plot.title = element_text(face = "bold"))
+
+ggplotly(p_majet_column, tooltip =  c("x", "y", "fill"), 
+         height = 300, width = 370) |>
+  config(displayModeBar = FALSE)
+```
+:::
+
+::: {.column width="50%" style="height:330px;"}
+```{r plot-kontakty-2}
+#| echo: FALSE
+ggplotly(p_kontakt, tooltip =  c("x", "y", "fill"), 
+         height = 300, width = 350) |>
+  config(displayModeBar = FALSE)
+```
+:::
+:::::
+
+------------------------------------------------------------------------
+
+## Ekonomické rozdíly podle zveřejňování
+
+Pro spojité ekonomické charakteristiky byl použit **dvouvýběrový Wilcoxonův test** (neparametrická alternativa t-testu pro případ porušení normality), doplněný o Cohenovo D jako míru velikosti efektu.
+
+```{r wilcox-kod}
+#| echo: TRUE
+#| eval: FALSE
+
+spojite <- data |>
+  select(matches("^(obyvatele|vznik|majetek|hc_naklady|hc_vynosy|hc_vh|hc_hhi|majetkova_struktura|zadluzenost)$")) |>
+  names()
+
+set.seed(123)
+wilcox_vysledky <- map(set_names(spojite), \(var) {
+  wilcox.test(data[[var]] ~ data$zv_kontinualni,
+              alternative = "two.sided", exact = FALSE)
+})
+```
+
+```{r wilcox-tabulka}
+#| echo: FALSE
+#| warning: FALSE
+#| message: FALSE
+
+# Ruční sestava výsledků z komentářů v R skriptu a výstupů prezentace
+vysledky <- data.frame(
+  Proměnná = c("Majetek", "Výnosy - hlavní činnost", "Výnosy - vedlejší činnost", "Náklady - hlavní činnost", "Náklady - vedlejší činnost", "Výsledek hospodaření - hlavní činnost",
+               "HHI - hlavní činnost", "Majetková struktura", "Zadluženost"),
+  `Medián ANO` = format(c(2217, 1645, 141, 1658, 46, 13, 0.61, 0.91, 0.09),
+                        big.mark = " ", decimal.mark = ",", scientific = FALSE),
+  `Medián NE`  = format(c(1407, 1887, 0, 2976, 0,  8, 0.64, 0.83, 0.25),
+                        big.mark = " ", decimal.mark = ",", scientific = FALSE),
+  `Závislost prokázána` = c("Ano *", "Ne", "Ano **", "Ne", "Ne", "Ne",
+                            "Ano *", "Ano *", "Ano *"),
+  check.names = FALSE
+)
+
+vysledky |>
+  kbl(booktabs = TRUE,
+      caption = "Srovnání mediánů spojitých proměnných dle zv_kontinualni (v tis. Kč)",
+      align = c("l", "r", "r", "c")) |>
+  kable_styling(full_width = FALSE) |>
+  column_spec(4, bold = TRUE,
+              color = ifelse(vysledky$`Závislost prokázána` == "Ne", "gray40", "#007B3DFF"))
+```
+
+Organizace zveřejňující účetní závěrku vykazují statisticky významně **vyšší majetek**, **vyšší hodnoty HHI** (tedy koncentrovanější výnosovou základnu) a **vyšší výnosy z vedlejší činnosti.** Současně mají **vyšší majetkovou strukturu** a **nižší zadluženost** (podíl krátkodobého finančního majetku na aktivech). Naopak ve výnosech z hlavní činnosti, nákladech ani výsledku hospodaření nebyly mezi skupinami zjištěny statisticky významné rozdíly.
+
+::::: columns
+::: {.column width="50%" style="height:390px;"}
+```{r plot-majetek}
+#| echo: FALSE
+
+p_majetek <- data |>
+  filter(!is.na(majetek)) |>
+  ggplot(aes(x = zv_kontinualni, y = majetek)) +
+  geom_boxplot(outlier.shape = 21, aes(fill = zv_kontinualni)) +
+  geom_jitter(width = 0.1, alpha = 0.4, size = 1.5) +
+  scale_fill_manual(values = c("#007B3DFF", "#D51317"), guide = "none") +
+  scale_y_log10(labels = comma_format(big.mark = " ")) +
+  labs(title = "",
+       x = "Kontinuálně zveřejňuje", y = "Majetek (tis. Kč; log)") +
+  theme(plot.title = element_text(face = "bold"))
+
+ggplotly(p_majetek, tooltip = c("x", "y", "fill"),
+         height = 360, width = 370) |>
+  config(displayModeBar = FALSE)
+```
+:::
+
+::: {.column width="50%" style="height:390px;"}
+```{r plot-zadluzenost}
+#| echo: FALSE
+
+p_zadluzenost <- data |>
+  filter(!is.na(zadluzenost)) |>
+  ggplot(aes(x = zv_kontinualni, y = zadluzenost)) +
+  geom_boxplot(outlier.shape = 21, aes(fill = zv_kontinualni)) +
+  geom_jitter(width = 0.1, alpha = 0.4, size = 1.5) +
+  scale_fill_manual(values = c("#007B3DFF", "#D51317"), guide = "none") +
+  scale_y_continuous(labels = percent_format()) +
+  labs(title = "",
+       x = "Kontinuálně zveřejňuje", y = "Zadluženost") +
+  theme(plot.title = element_text(face = "bold"))
+
+ggplotly(p_zadluzenost, tooltip = c("x", "y", "fill"), 
+         height = 360, width = 370) |>
+  config(displayModeBar = FALSE)
+```
+:::
+:::::
+
+------------------------------------------------------------------------
+
+## Nejsilnější faktory kontinuálního zveřejňování
+
+Pro komplexní posouzení prediktivní síly proměnných byla odhadnuta logistická regrese s vysvětlovanou proměnnou `zv_kontinualni`. Model byl vybrán pomocí **stepwise selekcí** (backward, forward i oboustranný přístup).
+
+```{r logit-kod}
+#| echo: TRUE
+#| eval: FALSE
+
+library(performance)
+
+vars_modelu <- c("zv_kontinualni", "obyvatele", "vznik", "podrizene_urovne",
+                 "organizace", "uroven", "web", "kontakty_obecne",
+                 "vedlejsi_cinnost", "zv_stanovy", "ucetnictvi", "majetek",
+                 "f_mesto_dummy", "f_vznik", "f_majetkova_struktura")
+
+data_na <- data |>
+  select(all_of(vars_modelu)) |>
+  drop_na() |>
+  mutate(zv_kontinualni = factor(zv_kontinualni, levels = c("ne", "ano")))
+
+fullmod <- glm(zv_kontinualni ~ obyvatele + vznik + podrizene_urovne +
+                 vedlejsi_cinnost + kontakty_obecne + ucetnictvi + majetek +
+                 f_majetkova_struktura + f_vznik + f_mesto_dummy,
+               data = data_na, family = binomial)
+
+nothing   <- glm(zv_kontinualni ~ 1, data = data_na, family = binomial)
+backwards <- step(fullmod)
+forwards  <- step(nothing, scope = list(lower = formula(nothing),
+                                        upper = formula(fullmod)),
+                  direction = "forward")
+```
+
+Proměnná `zv_kontinualni` byla před odhadem logistické regrese pomocí funkce `relevel()` nastavena tak, aby **referenční kategorií byla hodnota `„ne“`**. Model tak odhaduje šanci na kontinuální zveřejňování účetní závěrky (`„ano“`) vůči organizacím, které kontinuálně nezveřejňují (`„ne“`). Díky tomu lze kladné koeficienty interpretovat jako vyšší šanci zveřejňovat a záporné koeficienty jako nižší šanci zveřejňovat.
+
+```{r}
+#| eval: false
+#| include: true
+data <- data |> mutate(zv_kontinualni = relevel(zv_kontinualni, ref = "ne"))
+```
+
+Backward výběr dospěl k modelu s proměnnými `obyvatele`, `vznik`, `podrizene_urovne`, `majetek`, `hc_vynosy`, `hc_vh`, `f_hhi` a `f_mesto_dummy` (AIC = 48,7). Forward/stepwise konvergoval k jednodušší specifikaci s `majetek`, `f_majetkova_struktura`, `vznik` a `f_mesto_dummy` (AIC = 48,3).
+
+Pro finální interpretaci byl zvolen model zahrnující navíc proměnné `organizace` a `f_vznik`, který lépe odpovídá věcné logice výzkumné otázky - za cenu mírně vyššího AIC = 51,6.
+
+```{r logit-tabulka}
+#| echo: FALSE
+
+logit_res <- data.frame(
+  Proměnná =  c("(konstanta)", "Majetek", "Majetková struktura nad 90 %",
+  "Sídlo nad 50 tis. obyvatel",
+  "Vznik po 1993 vs. před 1993",
+  "FAČR vs. ČČK",
+  "Hasiči vs. ČČK",
+  "Sokoli vs. ČČK",
+  "Podřízená úroveň (ano)"
+),
+  Odhad    = c("-5,009", "5,717e-04", "2,321", "-1,013", "-0,210",
+               "3,670", "5,385", "3,739", "-1,686"),
+  `Poměr šancí` = c("-1,5x", "0,05 %", "10,2x", "-63,7 %", "-19 %",
+                   "39x", "218x", "42x", "-5,4x"),
+  `Std. chyba` = c("2,206", "2,253e-03", "1,213", "1,013", "1,145",
+                   "1,756 ", "2,147", "1,647", "1,190"),
+  `p-hodnota` = c("0,0232 *", "0,0111 *", "0,0556 .", "0,3171", "0,8544", "0,0366 *", "0,0121 *", "0,0232 *", "0,1566"),
+  `Šance na zveřejnění` = c("","Mírně vyšší šance","Výrazně vyšší šance","Nižší šance", "Mírně nižsí šance","FAČR zveřejňuje více","Hasiči zveřejňují výrazně více","Sokoli zveřejňují výrazněji více","Výrazně vyšší šance"),
+  check.names = FALSE
+)
+
+logit_res |>
+  kbl(booktabs = TRUE,
+      caption = "Výsledky backward logistické regrese (AIC = 48,7)") |>
+  kable_styling(full_width = FALSE) |>
+  column_spec(c(1,5:6), bold = TRUE,
+              color = ifelse((grepl("\\*|\\.", logit_res$`p-hodnota`)), "#007B3DFF", "gray40"))
+```
+
+Logistická regrese ukazuje, že **pravděpodobnost kontinuálního zveřejňování** účetní závěrky **roste** s **velikostí majetku** a je vyšší u organizací typu FAČR, hasiči a sokoli oproti referenční skupině. S vyšší pravděpodobností zveřejňování je spojen i vyšší majetková struktura. Organizace s majetkovou strukturou nad 90 % vykazují přibližně 10× vyšší šanci zveřejňovat, tento efekt je však pouze hraničně statisticky významný (p = 0,056) a může částečně odrážet skutečnost, že u nezveřejňujících organizací často nejsou účetní údaje vůbec dostupné.
+
+```{r regrese}
+#| echo: false
+data_na <- na.omit(data[, c('zv_kontinualni', 'obyvatele', 'vznik', 'podrizene_urovne',
+                           'organizace', 'uroven', 'web', 'kontakty_obecne','transparentni_bu',
+                           'vedlejsi_cinnost', 'zv_stanovy',  'ucetnictvi', 'majetek',
+                           'f_mesto_dummy', 'f_vznik', 'f_majetkova_struktura')])
+data_na$zv_kontinualni <- relevel(data_na$zv_kontinualni, ref = "ne")
+model <- glm(formula = zv_kontinualni ~ majetek + f_majetkova_struktura + 
+               f_mesto_dummy + f_vznik + organizace + podrizene_urovne, 
+             family = binomial, data = data_na)
+
+library(ggeffects)
+```
+
+::: {style="display:flex; justify-content:center;"}
+```{r plot-regrese-majetek}
+#| echo: false
+pred_majetek <- ggpredict(model, terms = "majetek [all]")
+
+p_pred_majetek <- ggplot(pred_majetek, aes(x = x, y = predicted)) +
+  geom_line(color = "#007B3DFF", linewidth = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high),
+              fill = "#007B3DFF") +
+  scale_y_continuous(labels = percent_format(), limits = c(0, 1)) +
+  scale_x_continuous(labels = comma_format(big.mark = " "),
+                     breaks = seq(0, max(pred_majetek$x), by = 5000)) +
+  labs(
+    x = "Majetek (tis. Kč)",
+    y = "Predikovaná pravděpodobnost zveřejnění",
+    caption = "Ostatní proměnné drženy na průměru/referenční kategorii."
+  ) +
+  theme_minimal()
+
+ggplotly(p_pred_majetek, tooltip = c("x", "y"),
+         height = 330, width = 650) |>
+  style(opacity = 0.2, traces = 2) |>
+  config(displayModeBar = FALSE)
+```
+:::
+
+Ve srovnání s referenční skupinou mají organizace **FAČR** přibližně 39×, **hasiči** 218× a **sokoli** 42× vyšší šanci zveřejňovat. Tento výsledek je však nutné interpretovat opatrně, protože logistická regrese vyřazuje pozorování s chybějícími hodnotami a model tak pracuje pouze s organizacemi, u nichž jsou účetní údaje dostupné (případ ČČK oproti ostatním organizacím). Výsledky proto mohou částečně odrážet spíše rozdíly v dostupnosti účetních dat než samotném zveřejňování účetních závěrek.
+
+Naopak velikost města, vznik po roce 1993 ani existence podřízených úrovní se jako významné faktory neprokázaly.
+
+::: {style="display:flex; justify-content:center;"}
+```{r plot-regrese-organizace}
+#| echo: false
+pred_org <- ggpredict(model, terms = "organizace")
+
+p_pred_oganizace <- ggplot(pred_org, aes(x = x, y = predicted, color = x)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high),
+                width = 0.15, linewidth = 0.8) +
+  scale_color_manual(values = c("#007B3DFF", "#D51317", "#F39200", "#0094CD"),
+                     guide = "none") +
+  scale_y_continuous(labels = percent_format(), limits = c(0, 1)) +
+  labs(
+    x = "Organizace",
+    y = "Predikovaná pravděpodobnost zveřejnění",
+    caption = "Ostatní proměnné drženy na průměru/referenční kategorii."
+  ) +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 11))
+
+ggplotly(p_pred_oganizace, tooltip = c("color", "y"), 
+         height = 330, width = 650) |>
+  config(displayModeBar = FALSE)
+```
+:::
+
+## Stabilita a změny ve zveřejňování
+
+Vývoj zveřejňování v čase ukazuje, že většina organizací má stabilní chování: 36 organizací dlouhodobě zveřejňuje a 36 dlouhodobě nezveřejňuje. Skupiny, které své chování změnily, jsou velmi malé - v obou případech jde pouze o 4 organizace - proto je lze interpretovat jen ilustrativně.
+
+**Stabilně zveřejňující** organizace mají oproti stabilně nezveřejňujícím vyšší medián majetku (2 545 vs. 1 407 tis. Kč), výrazně nižší zadluženost (9 % vs. 25 %), častěji web (86 % vs. 67 %) i kontaktní údaje (89 % vs. 69 %) a téměř se u nich nevyskytuje jednoduché účetnictví (0 % vs. 23 %). Tento profil odpovídá závěrům průřezové analýzy.
+
+Organizace, které **zveřejňovat přestaly**, tvoří převážně sokolské spolky. Přestože jde o organizace s relativně dobrou informační otevřeností (mají web, zveřejněné kontakty i stanovy), kontinuitu zveřejňování účetních závěrek si neudržely.
+
+Naopak organizace, které **zveřejňovat začaly**, sídlí výhradně v menších obcích, nemají podřízenou organizační úroveň a z poloviny jde o hasiče. Vzhledem k velmi nízkému počtu případů však z těchto změnových skupin nelze vyvozovat obecné závěry.
+
+------------------------------------------------------------------------
+
+# Závěrečné shrnutí
+
+## Klíčová zjištění
+
+Analýza 80 poboček čtyř velkých českých NNO (ČČK, FAČR, hasiči, sokoli) přinesla konzistentní obraz faktorů, které s kontinuálním plněním zákonné povinnosti zveřejňovat účetní závěrky **statisticky souvisejí**:
+
+**Prokázaná závislost:**
+
+-   Přítomnost webových stránek (χ² test, p \< 0,05)
+-   Typ účetnictví - zjednodušené/plné oproti jednoduchému (χ² test, p \< 0,05)
+-   Alespoň jeden zveřejněný kontakt (χ² test, p \< 0,05)
+-   Nižší zadluženost (Wilcoxonův test, p \< 0,05)
+-   Vyšší majetková struktura (logistická regrese, p \< 0,05)
+-   Vyšší výnosová koncentrace (HHI) (Wilcoxonův test, p \< 0,05)
+-   Vyšší majetek (Wilcoxonův test, p \< 0,05), logistická regrese, p \< 0,05)
+
+**Nedostatečná data (nelze rozhodnout):** zaměstnanost, transparentní účet, veřejný rejstřík (účel, funkce, stanovy).
+
+## Profil typické zveřejňující a nezveřejňující organizace
+
+**Zveřejňující organizace** je pravděpodobněji v menším městě (do 50 tis. obyvatel), má webové stránky, alespoň jeden zveřejněný kontakt, vede podvojné účetnictví a ekonomicky vykazuje vyšší majetek s nižší zadlužeností a nižší majetkovou strukturou. S vyšší pravděpodobností vznikla do roku 1993 a nemá podřízené organizační jednotky.
+
+**Nezveřejňující organizace** je naopak typicky v obci nad 50 tis. obyvatel, nemá nebo neuveřejňuje kontakty, nezveřejňuje ani typ účetnictví, a pokud jej uvádí, je s vyšší pravděpodobností jednoduchý. Ekonomicky má vyšší zadluženost a vykazuje vyšší náklady i výnosy na hlavní činnost.
+
+## Praktické dopady
+
+Výsledky potvrzují, že zákonná povinnost zveřejňovat účetní závěrky je ve spolkovém sektoru dlouhodobě a systematicky nedodržována. Organizace, které tuto povinnost plní, se od ostatních liší v řadě charakteristik a zpravidla vykazují vyšší míru profesionalizace, organizační vyspělosti a veřejné viditelnosti. Klíčovým závěrem proto zůstává, že bez důslednější kontroly a vymáhání ze strany státu nelze očekávat významné zlepšení stávající situace.

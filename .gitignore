@@ -1,0 +1,18 @@
+# R
+.RData
+.Rhistory
+*.rds
+
+# Data a výstupy
+*.xlsx
+*.pptx
+kontingencni_tabulky_2026.txt
+
+# Grafiky (generované)
+*.png
+
+# Windows
+desktop.ini
+
+# RPubs
+rsconnect/
