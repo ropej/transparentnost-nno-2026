@@ -186,7 +186,14 @@ p_web <- data |>
 ggplotly(p_web, tooltip =  c("x", "y", "fill"), 
          height = 270, width = 350) |>
   layout(margin = list(l = 100)) |>
-  config(displayModeBar = FALSE)
+  config(
+    displayModeBar = TRUE,
+    displaylogo = FALSE,
+    modeBarButtonsToRemove = c(
+      "zoom", "toImage", "pan2d", "select2d", "lasso2d", "autoScale2d",
+      "hoverClosestCartesian", "hoverCompareCartesian", "toggleSpikelines"
+    )
+  )
 ```
 :::
 :::::
@@ -227,7 +234,14 @@ p_uct <- data |>
 ggplotly(p_uct, tooltip =  c("x", "y", "fill"), 
          height = 270, width = 390) |>
   layout(margin = list(l = 80)) |>
-  config(displayModeBar = FALSE)
+  config(
+    displayModeBar = TRUE,
+    displaylogo = FALSE,
+    modeBarButtonsToRemove = c(
+      "zoom", "toImage", "pan2d", "select2d", "lasso2d", "autoScale2d",
+      "hoverClosestCartesian", "hoverCompareCartesian", "toggleSpikelines"
+    )
+  )
 ```
 :::
 :::::
@@ -268,7 +282,14 @@ p_kontakt <- data |>
 ggplotly(p_kontakt, tooltip =  c("x", "y", "fill"), 
          height = 270, width = 350) |>
   layout(margin = list(l = 100)) |>
-  config(displayModeBar = FALSE)
+  config(
+    displayModeBar = TRUE,
+    displaylogo = FALSE,
+    modeBarButtonsToRemove = c(
+      "zoom", "toImage", "pan2d", "select2d", "lasso2d", "autoScale2d",
+      "hoverClosestCartesian", "hoverCompareCartesian", "toggleSpikelines"
+    )
+  )
 ```
 :::
 :::::
@@ -299,7 +320,14 @@ p_vznik <- data |>
 
 ggplotly(p_vznik, tooltip =  c("x", "y", "fill"), 
          height = 270, width = 330) |>
-  config(displayModeBar = FALSE)
+  config(
+    displayModeBar = TRUE,
+    displaylogo = FALSE,
+    modeBarButtonsToRemove = c(
+      "zoom", "toImage", "pan2d", "select2d", "lasso2d", "autoScale2d",
+      "hoverClosestCartesian", "hoverCompareCartesian", "toggleSpikelines"
+    )
+  )
 ```
 :::
 
@@ -325,7 +353,14 @@ p_mesto <- data |>
 ggplotly(p_mesto, tooltip =  c("x", "y", "fill"), 
          height = 270, width = 390) |>
   # layout(margin = list(l = 100)) |>
-  config(displayModeBar = FALSE, responsive = FALSE)
+  config(
+    displayModeBar = TRUE,
+    displaylogo = FALSE,
+    modeBarButtonsToRemove = c(
+      "zoom", "toImage", "pan2d", "select2d", "lasso2d", "autoScale2d",
+      "hoverClosestCartesian", "hoverCompareCartesian", "toggleSpikelines"
+    )
+  )
 ```
 :::
 :::::
@@ -408,7 +443,14 @@ Na 5% hladině významnosti byla prokázána závislost kontinuálního zveřej�
 #| echo: FALSE
 ggplotly(p_web, tooltip =  c("x", "y", "fill"), 
          height = 300, width = 340) |>
-  config(displayModeBar = FALSE)
+  config(
+    displayModeBar = TRUE,
+    displaylogo = FALSE,
+    modeBarButtonsToRemove = c(
+      "zoom", "toImage", "pan2d", "select2d", "lasso2d", "autoScale2d",
+      "hoverClosestCartesian", "hoverCompareCartesian", "toggleSpikelines"
+    )
+  )
 ```
 :::
 
@@ -418,7 +460,14 @@ ggplotly(p_web, tooltip =  c("x", "y", "fill"),
 
 ggplotly(p_uct, tooltip =  c("x", "y", "fill"), 
          height = 300, width = 380) |>
-  config(displayModeBar = FALSE)
+  config(
+    displayModeBar = TRUE,
+    displaylogo = FALSE,
+    modeBarButtonsToRemove = c(
+      "zoom", "toImage", "pan2d", "select2d", "lasso2d", "autoScale2d",
+      "hoverClosestCartesian", "hoverCompareCartesian", "toggleSpikelines"
+    )
+  )
 ```
 :::
 :::::
@@ -445,7 +494,14 @@ p_majet_column <- data |>
 
 ggplotly(p_majet_column, tooltip =  c("x", "y", "fill"), 
          height = 300, width = 370) |>
-  config(displayModeBar = FALSE)
+  config(
+    displayModeBar = TRUE,
+    displaylogo = FALSE,
+    modeBarButtonsToRemove = c(
+      "zoom", "toImage", "pan2d", "select2d", "lasso2d", "autoScale2d",
+      "hoverClosestCartesian", "hoverCompareCartesian", "toggleSpikelines"
+    )
+  )
 ```
 :::
 
@@ -454,7 +510,14 @@ ggplotly(p_majet_column, tooltip =  c("x", "y", "fill"),
 #| echo: FALSE
 ggplotly(p_kontakt, tooltip =  c("x", "y", "fill"), 
          height = 300, width = 350) |>
-  config(displayModeBar = FALSE)
+  config(
+    displayModeBar = TRUE,
+    displaylogo = FALSE,
+    modeBarButtonsToRemove = c(
+      "zoom", "toImage", "pan2d", "select2d", "lasso2d", "autoScale2d",
+      "hoverClosestCartesian", "hoverCompareCartesian", "toggleSpikelines"
+    )
+  )
 ```
 :::
 :::::
@@ -527,7 +590,14 @@ p_majetek <- data |>
 
 ggplotly(p_majetek, tooltip = c("x", "y", "fill"),
          height = 360, width = 370) |>
-  config(displayModeBar = FALSE)
+  config(
+    displayModeBar = TRUE,
+    displaylogo = FALSE,
+    modeBarButtonsToRemove = c(
+      "zoom", "toImage", "pan2d", "select2d", "lasso2d", "autoScale2d",
+      "hoverClosestCartesian", "hoverCompareCartesian", "toggleSpikelines"
+    )
+  )
 ```
 :::
 
@@ -548,7 +618,14 @@ p_zadluzenost <- data |>
 
 ggplotly(p_zadluzenost, tooltip = c("x", "y", "fill"), 
          height = 360, width = 370) |>
-  config(displayModeBar = FALSE)
+  config(
+    displayModeBar = TRUE,
+    displaylogo = FALSE,
+    modeBarButtonsToRemove = c(
+      "zoom", "toImage", "pan2d", "select2d", "lasso2d", "autoScale2d",
+      "hoverClosestCartesian", "hoverCompareCartesian", "toggleSpikelines"
+    )
+  )
 ```
 :::
 :::::
@@ -668,7 +745,14 @@ p_pred_majetek <- ggplot(pred_majetek, aes(x = x, y = predicted)) +
 ggplotly(p_pred_majetek, tooltip = c("x", "y"),
          height = 330, width = 650) |>
   style(opacity = 0.2, traces = 2) |>
-  config(displayModeBar = FALSE)
+  config(
+    displayModeBar = TRUE,
+    displaylogo = FALSE,
+    modeBarButtonsToRemove = c(
+      "zoom", "toImage", "pan2d", "select2d", "lasso2d", "autoScale2d",
+      "hoverClosestCartesian", "hoverCompareCartesian", "toggleSpikelines"
+    )
+  )
 ```
 :::
 
@@ -698,7 +782,14 @@ p_pred_oganizace <- ggplot(pred_org, aes(x = x, y = predicted, color = x)) +
 
 ggplotly(p_pred_oganizace, tooltip = c("color", "y"), 
          height = 330, width = 650) |>
-  config(displayModeBar = FALSE)
+  config(
+    displayModeBar = TRUE,
+    displaylogo = FALSE,
+    modeBarButtonsToRemove = c(
+      "zoom", "toImage", "pan2d", "select2d", "lasso2d", "autoScale2d",
+      "hoverClosestCartesian", "hoverCompareCartesian", "toggleSpikelines"
+    )
+  )
 ```
 :::
 
