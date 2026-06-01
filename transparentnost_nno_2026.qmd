@@ -45,7 +45,6 @@ table.tab-popis-dat {
 #| message: FALSE
 
 rm(list = ls())
-setwd("C:/Users/pejcalovar/OneDrive - MSMT/MUNI - statistika/_statistiky pro Kubu/sokoli, FAČR, hasiči, ČK")
 
 library(dplyr)
 library(purrr)

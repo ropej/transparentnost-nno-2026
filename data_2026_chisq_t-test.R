@@ -11,10 +11,6 @@ library(openxlsx)
 data <- readRDS("data-2026.rds")
 
 
-# PRISTE DOPNIT DUMMY PRO NAs ke všem kategorickym
-# STANDARDIZOVANE EFEKTY u spojitých porměnných
-
-
 ##################################
 ## PRIPRAVA DAT
 ##################################
@@ -41,6 +37,9 @@ data <- data |>
     across(where(is.character), ~ na_if(.x, "NA"))
   )
 
+# Nahrad NaN za NA
+data <- data |> mutate_all(~replace(., is.nan(.), NA))
+
 # Tridy sloupcu a pojmenovani
 data[, c(4:6, 8:23)] <- lapply(data[, c(4:6, 8:23)], factor)
 data <- data |> 
@@ -53,19 +52,6 @@ data[, c(3, 24:34)] <- lapply(data[, c(3, 24:34)], as.numeric)
 summary(data)
 data <- data |> select(-c(zv_ucel, zv_funkce, zv_older))
 
-# # 0 ve faktoru na NA
-# data[sapply(data, is.factor)] <- lapply(data[sapply(data, is.factor)], gsub, pattern = "0", replacement = NA)
-
-
-# # Spojite promenne aby byly skutecne spojite
-# for (i in grep('obyvatele|^x20.*(vynosy|naklady|vh|majetek)$', names(data), value = T)) {
-#   data[,i] <- as.integer(data[,i])
-# }
-# for (i in grep('^x20.*(hhi|struktura|zadluzenost)$', names(data), value = T)) {
-#   data[,i] <- as.numeric(data[,i])
-# }
-
-
 # Kategorizace
 data$f_mesto <- as.factor(cut(data$obyvatele, breaks = c(0, 10000, 50000, 100000, 1000000, 1500000),
                                    labels = c('Maloměsto do 10 t.','Střední město do 50 t.',
@@ -73,8 +59,6 @@ data$f_mesto <- as.factor(cut(data$obyvatele, breaks = c(0, 10000, 50000, 100000
                                               'Světové velkoměsto nad 1 mil.')))
 data$f_mesto_dummy <- as.factor(cut(data$obyvatele, breaks = c(0, 50000, 1500000),
                                             labels = c('Město do 50 t.','Město nad 50 t.')))
-# data$f_vznik <- as.factor(cut(data$vznik, breaks = c(0, 1980, 1990, 2000, 2030), right = FALSE,
-#                                        labels = c("70. léta", "80. léta", "90.léta", "2. milénium")))
 data$f_vznik <- as.factor(cut(data$vznik, breaks = c(0, 1993, 2030), right = FALSE,
                               labels = c("před 1993", "po 1993")))
 data$ucetnictvi <- factor(data$ucetnictvi, labels = c("jednoduché", "zjednodušené", "plné"),
@@ -84,63 +68,7 @@ data$ucetnictvi <- factor(data$ucetnictvi, labels = c("jednoduché", "zjednoduš
 data$f_zamestnanost <- as.factor(ifelse(data$zamestnanost == '1 - 5 zaměstnanců', 'do 5 zaměstnanců',
                                         'více než 5 zaměstnanců'))
 
-# # Doplň sloupec kontakt obecně, pokud chybí
-# data <- data |>
-#   mutate(kontakt = factor(
-#     if_else(
-#       if_any(starts_with("kontakt"), ~ !is.na(.) & . == "ano"),
-#       "ano", "ne"
-#       )
-#     ))
-
-# # vypocty prumernych financnich polozek (soucet vedlejsi a hlavni cinnost)
-# prumer2 <- function(data_zdroj, string, rozdelovac, n){
-#   vektor <- rep(NaN, nrow(data_zdroj))
-#   data_subset <- data_zdroj[,grepl(string, colnames(data_zdroj))]
-#   data_subset <- as.data.frame(sapply(data_subset, function(x){as.integer(gsub(" ", "", x))}))
-#   rozdel1 <- data_subset[,grepl(rozdelovac[1], colnames(data_subset))]
-#   rozdel2 <- data_subset[,grepl(rozdelovac[2], colnames(data_subset))]
-#   secti_rozdelene <- as.data.frame(
-#     mapply(function(x, y)
-#       if(is.numeric(x) && is.numeric(y))
-#         ifelse(is.na(x), y,
-#                ifelse(is.na(y), x, x + y)
-#         )
-#       else NA,
-#       rozdel1, rozdel2, SIMPLIFY = FALSE))
-#   vektor <- apply(secti_rozdelene, 1, function(x){round(mean(x, na.rm = TRUE), n)})
-#   vektor[is.nan(vektor)] <- NA
-#   return(vektor)
-# }
-
 roz <- c("vc","hc")
-# # data[,grepl("^*", colnames(data))] <- NULL
-# data$majetek <- apply(data[,grepl("x20[1-2][0-9].*majetek", colnames(data))],
-#                              1, function(x){round(mean(x, na.rm = TRUE), 2)})
-# data$vynosy <- prumer2(data, "x20[1-2][0-9].*vynosy", roz, 2)
-# data$naklady <- prumer2(data, "x20[1-2][0-9].*naklady", roz, 2)
-# data$vh <- prumer2(data, "x20[1-2][0-9].*vh", roz, 2)
-# data$majetkova_struktura <- apply(data[,grepl("x20[1-2][0-9].*majetkova_struktura", colnames(data))],
-#                                         1, function(x){round(mean(x, na.rm = TRUE), 2)})
-# data$zadluzenost <- apply(data[,grepl("x20[1-2][0-9].*zadluzenost", colnames(data))],
-#                                 1, function(x){round(mean(x, na.rm = TRUE), 2)})
-# data$hc_hhi <- apply(data[,grepl("x20[1-2][0-9].*hc_hhi", colnames(data))],
-#                            1, function(x){round(mean(x, na.rm = TRUE), 2)})
-# data$vc_hhi <- apply(data[,grepl("x20[1-2][0-9].*vc_hhi", colnames(data))],
-#                            1, function(x){round(mean(x, na.rm = TRUE), 2)})
-# data$hc_naklady <- apply(data[,grepl("x20[1-2][0-9].*hc_naklady", colnames(data))],
-#                             1, function(x){round(mean(x, na.rm = TRUE), 2)})
-# data$vc_naklady <- apply(data[,grepl("x20[1-2][0-9].*vc_naklady", colnames(data))],
-#                             1, function(x){round(mean(x, na.rm = TRUE), 2)})
-# data$hc_vynosy <- apply(data[,grepl("x20[1-2][0-9].*hc_vynosy", colnames(data))],
-#                                 1, function(x){round(mean(x, na.rm = TRUE), 2)})
-# data$vc_vynosy <- apply(data[,grepl("x20[1-2][0-9].*vc_vynosy", colnames(data))],
-#                                 1, function(x){round(mean(x, na.rm = TRUE), 2)})
-# data$hc_vh <- apply(data[,grepl("x20[1-2][0-9].*hc_vh", colnames(data))],
-#                                1, function(x){round(mean(x, na.rm = TRUE), 2)})
-# data$vc_vh <- apply(data[,grepl("x20[1-2][0-9].*vc_vh", colnames(data))],
-#                                1, function(x){round(mean(x, na.rm = TRUE), 2)})
-data <- data |> mutate_all(~replace(., is.nan(.), NA)) # nahrad NaN za NA
 
 data$f_zadluzenost <- factor(cut(data$zadluzenost,
                                        breaks = c(min(data$zadluzenost, na.rm = T) - 0.1, 0.05,
@@ -167,8 +95,6 @@ data <- data |>
   )
 
 # Smaz neporebna data
-# data[,grepl("x20[1-2][0-9].*", colnames(data))] <- NULL
-# data[,grepl("^zv_[1-2]", colnames(data))] <- NULL
 data[data$zv_vse != data$zv_kontinualni, c('zv_vse', 'zv_kontinualni')]
 data$zv_vse <- NULL # shodne
 
@@ -179,7 +105,7 @@ table(data$zv_vse)
 table(data$zv_kontinualni)
 ## ano  ne 
 ## 40 40 
-
+## stejné výsledky -> stačí použít jen jednu vysvětlovnaou proměnnou
 
 
 ##################################
@@ -207,30 +133,12 @@ for (j in zv) {
   }
 }
 
-# # Funkce na slouceni vektoru po elementech
-# concatenate_by_el  <- function(a,b,c) {
-#   new_vector <- c()
-#   for (i in seq_along(a)) {
-#     new_vector <- c(new_vector, a[i], b[i], c[i])
-#   }
-#   return(new_vector)
-# }
-# 
-# # Vytvoreni kontingencni tabulky
-# foo <- concatenate_by_el(ls(pattern = "abs_"), ls(pattern = "podm_rad_"), ls(pattern = "rel_"))
-# kontingencni_tabulky <- list()
-# for (i in foo) {
-#   kontingencni_tabulky[[i]] <- get(i)
-# }
-
 cat(capture.output(print(kontingencni_tabulky), file = "kontingencni_tabulky_2026.txt"))
 
 # Vymazani promennych
 rm(list = ls(pattern = "abs_"))
 rm(list = ls(pattern = "podm_rad_"))
 rm(list = ls(pattern = "rel_"))
-
-
 
 
 ##################################
@@ -297,35 +205,6 @@ str(spojite_vyber)
 names(spojite_vyber)[sapply(spojite_vyber, is.character)]
 names(spojite_vyber)[sapply(spojite_vyber, is.factor)]
 
-# Kategorizovane spojite - ciselne charakteristiky
-# zv_vse_RUCNE <- 
-#   apply(X = data[,spojite], 2,
-#         function(x) 
-#           tapply(X = x, INDEX = zv_vse,
-#                  FUN = function(x) c(notNAs = round(sum(complete.cases(x)),0), NAs = round(sum(!complete.cases(x)),0),
-#                                    min = ifelse(sum(!is.na(x)) == 0, NA, round(min(x, na.rm  =  T),2)),
-#                                    max = ifelse(sum(!is.na(x)) == 0, NA, round(max(x, na.rm = T),2)),
-#                                    avg = round(mean(x, na.rm = T),2),
-#                                    median = round(median(x, na.rm = T),2), smodch = round(sd(x, na.rm = T),3)
-#                                    )))
-# zv_vse_FCE_SUMMARY <- 
-#   apply(X = data[,spojite], 2,
-#         function(x) 
-#           tapply(X = x, INDEX = zv_vse, FUN = summary, digits = 3))
-
-# zv_kontinualni_RUCNE <- 
-#   apply(X = data[,spojite], 2,
-#         function(x) 
-#           tapply(X = x, INDEX = data$zv_kontinualni,
-#                  FUN = function(x) c(notNAs = round(sum(complete.cases(x)),0), NAs = round(sum(!complete.cases(x)),0),
-#                                    min = ifelse(sum(!is.na(x)) == 0, NA, round(min(x, na.rm = T),2)),
-#                                    max = ifelse(sum(!is.na(x)) == 0, NA, round(max(x, na.rm = T),2)),
-#                                    avg = round(mean(x, na.rm = T),2),
-#                                    median = round(median(x, na.rm = T),2), smodch = round(sd(x, na.rm = T),3)
-#                                    )))
-# 
-# 
-
 zv_kontinualni_RUCNE <- data |>
   select(zv_kontinualni, all_of(spojite)) |>
   pivot_longer(
@@ -349,9 +228,6 @@ zv_kontinualni_FCE_SUMMARY <-
   apply(X = data[,spojite], 2,
         function(x) 
           tapply(X = x, INDEX = data$zv_kontinualni, FUN = summary, digits = 3))
-
-# # spoj.ciselne.char <- append(zv_kontinualni_RUCNE) # append(zv_kontinualni_RUCNE, zv_vse_RUCNE)
-# cat(capture.output(print(zv_kontinualni_RUCNE), file = "KATEG_SPOJ_ciselne_charakteristiky_2026.txt"))
 
 write.xlsx(
   zv_kontinualni_RUCNE,
@@ -610,49 +486,47 @@ formula(bothways)
 cbind(backwards$aic, forwards$aic, bothways$aic)
 # [1,] 48.70005 48.29069 48.29069
 
+# Změna referenční hladiny
 data_na$zv_kontinualni <- relevel(data_na$zv_kontinualni, ref = "ne")
 model <- glm(formula = zv_kontinualni ~ majetek + f_majetkova_struktura + 
                f_mesto_dummy + f_vznik + organizace + podrizene_urovne, 
              family = binomial, data = data_na)
 model$aic
 summary(model)
-exp(model$coefficients)
-exp(-model$coefficients)
+exp(model$coefficients) # poměr šancí
+exp(-model$coefficients) # inverzní poměr šancí
 
 # Coefficients:
 #                                 Estimate Std. Error z value Pr(>|z|)  
-# (Intercept)                    5.0092710  2.2060285   2.271   0.0232 *
-# majetek                       -0.0005717  0.0002253  -2.538   0.0111 *
-# f_majetkova_strukturanad 90 % -2.3209871  1.2125023  -1.914   0.0556 .
-# f_mesto_dummyMěsto nad 50 t.   1.0129157  1.0124864   1.000   0.3171  
-# f_vznikpo 1993                 0.2101772  1.1451482   0.184   0.8544  
-# organizaceFAČR                -3.6700336  1.7560428  -2.090   0.0366 *
-# organizacehasiči              -5.3850629  2.1469128  -2.508   0.0121 *
-# organizacesokoli              -3.7389934  1.6472642  -2.270   0.0232 *
-# podrizene_urovnene            -1.6862146  1.1903516  -1.417   0.1566  
+# (Intercept)                    -5.0092710  2.2060285   2.271   0.0232 *
+# majetek                        0.0005717   0.0002253  -2.538   0.0111 *
+# f_majetkova_strukturanad 90 %  2.3209871   1.2125023  -1.914   0.0556 .
+# f_mesto_dummyMěsto nad 50 t.   -1.0129157  1.0124864   1.000   0.3171  
+# f_vznikpo 1993                 -0.2101772  1.1451482   0.184   0.8544  
+# organizaceFAČR                 3.6700336   1.7560428  -2.090   0.0366 *
+# organizacehasiči               5.3850629   2.1469128  -2.508   0.0121 *
+# organizacesokoli               3.7389934   1.6472642  -2.270   0.0232 *
+# podrizene_urovnene             -1.6862146  1.1903516   1.417   0.1566  
+
+# Pozn.: Všechny uvedené interpretace platí při stejných hodnotách ostatních proměnných v modelu.
+# -----------------------------------------------------
+# Organizace po roce 1993 včetně má o -19 % nižší šanci na zveřejnění než ty starší organizace
+# Každé zvýšení majetku o 1 tis. mírně zvyšuje šanci (o cca 0.05 %). Tento efekt je statisticky významný (p = 0.0111).
+# Organizace ve větších obcích (nad 50 t.) mají přibližně o 63,7 % nižší šanci zveřejnit kontinuální záznam než organizace v menších obcích.
+# Organizace s vyšší majetkovou strukturou (nad 90%) mají cca 10 krát vyšší šanci zveřejnit kontinuální záznam.
+# Organizace s nižší majetkovou strukturou (do 90%) mají o cca 90 % nižší šanci zveřejnit kontinuální záznam.
+# Organizace s pozřízenou úornví mají přibližně 5.4 nižší šanci zveřejnit kontinuální záznam.
+# Červený kříž má šanci zveřejnit kontinuální záznam přibližně o 97,5 % nižší než FAČR, o 99,5 % nižší než hasiči a o 97,6 % nižší než sokoli
 
 
-## Zvýší-li se počet obyvatel obce o 1 000, šance na zveřejnění kontinuálního záznamu klesá přibližně o 0.8 % (tj. 0.992× menší šance, 1 - 0.99207), za jinak stejných podmínek.(p = 0.082 – na hraně statistické významnosti)
-## Pokud není uvedeno jméno kontaktu, šance na zveřejnění je přibližně 4.5× nižší než pokud uvedeno je. (p = 0.064 – na hranici významnosti)
-## Každý novější rok vzniku snižuje šanci zveřejnění asi 0.9× (o 9,3 %) – ale efekt není statisticky významný (p = 0.11).
-# Organizace vzniklá po roce 1993 včetně má 1.203 krát větší šanci na zveřejnění než ty starší organizace
-# Každé zvýšení majetku o 1 tis. mírně snižuje šanci (o cca 0.06 %). Tento efekt je statisticky významný (p = 0.0239).
-# Organizace ve větších obcích (nad 50 t.) mají přibližně 2.8× vyšší šanci zveřejnit kontinuální záznam než organizace v menších obcích.
-# Organizace s vyšší majetkovou strukturou (nad 90%) mají o 81.5 % nižší šanci zveřejnit kontinuální záznam.
-# Organizace s nižší majetkovou strukturou (do 90%) mají o cca 1 % vyšší šanci zveřejnit kontinuální záznam.
-# Organizace s pozřízenou úornví mají přibližně 5.4 vyšší šanci zveřejnit kontinuální záznam.
 
-# Červený kříž má šanci zveřejnit kontinuální záznam přibližně 3.9x vyšší než FAČR, 2.2x vyšší než hasiči a 4.2x vyšší než sokoli
-
+##################################
+## PANEL - porovnání změn zvěřejňování v čase
+##################################
 
 data |> select(zv_kontinualni, zv_kontinualni_minule) |> mutate(zv_kontinualni == zv_kontinualni_minule) |> View()
 # u 8 došlo k změně při zvěřejňování - 4 začaly zveřejňovat a 4 přestaly
-
-
-##################################
-## PANEL
-##################################
-
+                            
 data <- data |> 
   mutate(zv_kontinualni_zmena = case_when(
     zv_kontinualni_minule == "ano" & zv_kontinualni == "ano" ~ "stabilně ano",
