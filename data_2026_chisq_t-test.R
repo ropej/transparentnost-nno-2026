@@ -1,7 +1,6 @@
-setwd("C:/Users/pejcalovar/OneDrive - MSMT/MUNI - statistika/_statistiky pro Kubu/sokoli, FAČR, hasiči, ČK")
-
 rm(list = ls())
 library(dplyr)
+library(purrr)
 library(readxl)
 library(stringi)
 library(openxlsx)
@@ -34,14 +33,13 @@ colnames(data) <- colnames(data) |>
   gsub("_$", "", x = _)                          # odstranění _ na konci
 
 # Transformace: ANO -> ano, NE -> ne, NAs
-data <- data.frame(lapply(data, function(x) {gsub("^(ANO?)$|^(Ano?)$", "ano", x)}))
-data <- data.frame(lapply(data, function(x) {gsub("^(NE?)$|^(Ne?)$|^(nee)$", "ne", x)}))
-data <- data.frame(lapply(data, function(x) {gsub("^(na)$", "NA", x)}))
-data <- data.frame(
-  lapply(data, \(x) {
-    if (is.character(x)) na_if(x, "NA") else x
-  })
-)
+data <- data |>
+  mutate(
+    across(everything(), ~ gsub("^(ANO?)$|^(Ano?)$", "ano", .x)),
+    across(everything(), ~ gsub("^(NE?)$|^(Ne?)$|^(nee)$", "ne", .x)),
+    across(everything(), ~ gsub("^(na)$", "NA", .x)),
+    across(where(is.character), ~ na_if(.x, "NA"))
+  )
 
 # Tridy sloupcu a pojmenovani
 data[, c(4:6, 8:23)] <- lapply(data[, c(4:6, 8:23)], factor)
@@ -182,16 +180,16 @@ table(data$zv_kontinualni)
 ## ano  ne 
 ## 40 40 
 
-attach(data)
-detach(data)
 
 
 ##################################
 ## Kontingnencni tabulky
 ##################################
 
-kvalitativni <- names(data)[sapply(data, is.factor)]
-kvalitativni <- kvalitativni[-grep('(zv_kontinualni|zv_kontinualni_minule|zv_vse|zv_vse_minule|f_mesto|zamestnanost)$', kvalitativni)]
+kvalitativni <- data |>
+  select(where(is.factor)) |>
+  select(-matches("^(zv_kontinualni|zv_kontinualni_minule|zv_vse|zv_vse_minule|f_mesto|zamestnanost)$")) |>
+  names()
 
 zv <- c('zv_kontinualni') # c('zv_vse', 'zv_kontinualni')
 
@@ -239,100 +237,48 @@ rm(list = ls(pattern = "rel_"))
 ## Testy zavislosti - kvalitativni promenne
 ##################################
 
-kvalitativni <- names(data)[sapply(data, is.factor)]
-kvalitativni <- kvalitativni[-grep('(zv_kontinualni|zv_kontinualni_minule|zv_vse|zv_vse_minule|f_mesto|zamestnanost)$', kvalitativni)]
+kvalitativni <- data |>
+  select(where(is.factor)) |>
+  select(-matches("^(zv_kontinualni|zv_kontinualni_minule|zv_vse|zv_vse_minule|f_mesto|zamestnanost)$")) |>
+  names()
 
 
 # chi kvadrat testy, Fisher presny (exaktni) test pri poruseni podminek dobre aproximace
-chisq_zavislost <- data.frame(X_vs_Y = NA, neprazdne = NA, podminky_dobre_aprox = NA, 
-                              chisq_p_value = NA, chisq_zavisle = NA,
-                              crameruv_index = NA, fisher_p_value = NA, fisher_zavisle = NA)
+chisq_zavislost <- map(set_names(kvalitativni), \(var) {
+  set.seed(123)
+  foo <- chisq.test(data$zv_kontinualni, data[[var]], simulate.p.value = TRUE, B = 10000)
 
-# # Funkce na podminku dobre aproximace
-# podm_chisqtest <- function(...) {
-#   chitest <- chisq.test(..., simulate.p.value = T)
-#   if ((sum(chitest$expected >= 5) + sum(chitest$expected < 5 & chitest$expected >= 2)) / length(chitest$observed) == 1) {
-#     return('splneno')
-#   } else {
-#     return('nesplneno')
-#   }
-# }
-# 
-# # Funkce na crameruv index
-# cramer  <- function(...) {
-#   chitest <- chisq.test(..., simulate.p.value = T)
-#   
-#   K <- chitest$statistic
-#   n <- sum(chitest$observed)
-#   m <- min(dim(chitest$observed))
-#   cramer_v <- sqrt(K / (n * (m - 1)))
-#   
-#   if (cramer_v < 0.1) {
-#     return(paste(round(cramer_v, 3), 'zanedbatelna zavislost'))
-#   } else if (cramer_v < 0.3) {
-#     return(paste(round(cramer_v, 3), 'slaba zavislost'))
-#   } else if (cramer_v < 0.7) {
-#     return(paste(round(cramer_v, 3), 'stredni zavislost'))
-#   } else {
-#     return(paste(round(cramer_v, 3), 'silna zavislost'))
-#   }
-# }
+  podminka <- if (
+    (sum(foo$expected >= 5) + sum(foo$expected < 5 & foo$expected >= 2)) /
+    length(foo$observed) == 1
+  ) "splneno" else "nesplneno"
 
-k <- 1
-for (j in zv){
-  for (i in kvalitativni){
-    set.seed(123)
-    
-    foo <- chisq.test(data[[j]], data[[i]], simulate.p.value = TRUE, B = 10000)
-    
-    # Podmínka dobré aproximace
-    podminka <- if (
-      (sum(foo$expected >= 5) +
-       sum(foo$expected < 5 & foo$expected >= 2)) / length(foo$observed) == 1
-    ) {
-      "splneno"
-    } else {
-      "nesplneno"
-    }
-    
-    # # Přepočet p-value pokud porušení podmínek dobré aproximace
-    # foo <- if (podminka == 'splněno') {
-    #   suppressWarnings(chisq.test(data[[j]], data[[i]]))
-    # } else {
-    #   # simulate.p.vlaue při nesplněné podmínce dobré aproximace
-    #   chisq.test(data[[j]], data[[i]], simulate.p.value = TRUE, B = 10000) 
-    # } 
-    
-    
-    K <- foo$statistic
-    n <- sum(foo$observed)
-    m <- min(dim(foo$observed))
-    cramer_v <- sqrt(K / (n * (m - 1)))
-    cramer_v <- 
-      if (cramer_v < 0.1) {
-        (paste(round(cramer_v, 3), 'zanedbatelna zavislost'))
-      } else if (cramer_v < 0.3) {
-        (paste(round(cramer_v, 3), 'slaba zavislost'))
-      } else if (cramer_v < 0.7) {
-        (paste(round(cramer_v, 3), 'stredni zavislost'))
-      } else {
-        (paste(round(cramer_v, 3), 'silna zavislost'))
-      }
-    
-    foo <- chisq.test(data[[j]], data[[i]], simulate.p.value = T)
-    chisq_zavislost[k, ] <- c(paste0(j, "_VS_", i),
-                              sum(complete.cases(data[[i]])),
-                              podminka,
-                              foo$p.value,
-                              foo$p.value < 0.05,
-                              cramer_v,
-                              fisher.test(data[[j]], data[[i]])$p.value,
-                              fisher.test(data[[j]], data[[i]])$p.value < 0.05)
-    k <- k + 1
-  }
-}
+  K <- foo$statistic
+  n <- sum(foo$observed)
+  m <- min(dim(foo$observed))
+  cramer_v <- sqrt(K / (n * (m - 1)))
+  cramer_v_str <- case_when(
+    cramer_v < 0.1 ~ paste(round(cramer_v, 3), "zanedbatelna zavislost"),
+    cramer_v < 0.3 ~ paste(round(cramer_v, 3), "slaba zavislost"),
+    cramer_v < 0.7 ~ paste(round(cramer_v, 3), "stredni zavislost"),
+    .default       ~ paste(round(cramer_v, 3), "silna zavislost")
+  )
 
-write.csv2(chisq_zavislost,"KVALITATIVNI_zavislost_2026.csv", fileEncoding = "UTF-8")
+  foo2 <- chisq.test(data$zv_kontinualni, data[[var]], simulate.p.value = TRUE)
+
+  tibble(
+    X_vs_Y               = paste0("zv_kontinualni_VS_", var),
+    neprazdne            = sum(complete.cases(data[[var]])),
+    podminky_dobre_aprox = podminka,
+    chisq_p_value        = foo2$p.value,
+    chisq_zavisle        = foo2$p.value < 0.05,
+    crameruv_index       = cramer_v_str,
+    fisher_p_value       = fisher.test(data$zv_kontinualni, data[[var]])$p.value,
+    fisher_zavisle       = fisher.test(data$zv_kontinualni, data[[var]])$p.value < 0.05
+  )
+}) |> list_rbind()
+
+write.csv2(chisq_zavislost, "KVALITATIVNI_zavislost_2026.csv", fileEncoding = "UTF-8")
 # 2024: Odstranila jsem zamestance - vsichni 1-5
 
 
