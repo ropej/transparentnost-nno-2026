@@ -4,6 +4,7 @@ Analýza faktorů spojených s kontinuálním plněním zákonné povinnosti zve
 
 **Autoři:** Romana Pejcalová, Jakub Pejcal  
 **Datum:** květen 2026
+**Interaktivní report:** https://ropej.github.io/transparentnost-nno-2026/
 
 ## Výzkumný vzorek
 
