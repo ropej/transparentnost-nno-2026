@@ -78,7 +78,7 @@ Průměr za dostupná účetní období, hodnoty v tis. Kč (není-li uvedeno ji
 |---|---|
 | `transparentnost_nno_2026.qmd` | Zdrojový Quarto dokument |
 | `data_2026_chisq_t-test.R` | R skript s analýzami |
-| `index.html` | Publikovaný HTML report |
+| `docs/index.html` | Publikovaný HTML report |
 
 ## Report
 
