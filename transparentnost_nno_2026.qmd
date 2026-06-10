@@ -22,6 +22,7 @@ format:
     smooth-scroll: true
     code-copy: true
     google-analytics: "G-KJTWZJGXRQ"
+    include-in-header: google-analytics.html
 editor: visual
 ---
 
